@@ -7,7 +7,7 @@ import frc.robot.commands.Autos
 import frc.robot.commands.ExampleCommand
 import frc.robot.commands.TeleopDriveCommand
 import frc.robot.subsystems.ExampleSubsystem
-import frc.robot.subsystems.SwerveSubsystem
+import frc.robot.subsystems.swerve.SwerveSubsystem
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
