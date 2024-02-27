@@ -16,8 +16,10 @@ import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.robot.Constants
+import frc.robot.subsystems.swerve.ModuleIO
 import frc.robot.subsystems.swerve.ModuleIOYagsl
 import frc.robot.subsystems.swerve.SwerveDriveAK
+import org.littletonrobotics.junction.Logger
 import swervelib.SwerveDrive
 import swervelib.parser.SwerveParser
 import swervelib.telemetry.SwerveDriveTelemetry
@@ -32,7 +34,7 @@ import java.nio.file.Path
  * @since 1/15/2024
  */
 object SwerveSubsystem : SubsystemBase() {
-    private val swerveDrive: SwerveDriveAK
+    private val swerveDrive: SwerveDrive
 
     /** @suppress */
     var maximumSpeed: Double = Units.feetToMeters(9.0)
@@ -40,16 +42,25 @@ object SwerveSubsystem : SubsystemBase() {
     var swerveStates: StructArrayPublisher<SwerveModuleState> = NetworkTableInstance.getDefault().
     getStructArrayTopic("SwerveStates/swerveStates", SwerveModuleState.struct).publish()
 
+    var moduleIOList: Array<ModuleIO?> = Array(4) { null }
+
+    var inputsArray: Array<ModuleIO.ModuleIOInputs> = arrayOf(
+        ModuleIO.ModuleIOInputs(),
+        ModuleIO.ModuleIOInputs(),
+        ModuleIO.ModuleIOInputs(),
+        ModuleIO.ModuleIOInputs()
+    )
+
+
     init {
 
         SwerveDriveTelemetry.verbosity = SwerveDriveTelemetry.TelemetryVerbosity.HIGH
 
         try {
-            val swerve = SwerveParser(
+            swerveDrive = SwerveParser(
                 File(Filesystem.getDeployDirectory(),
                     "/swerve/")
             ).createSwerveDrive(maximumSpeed)
-            swerveDrive = SwerveDriveAK(swerve)
         } catch (e: Exception) {
             e.printStackTrace()
             throw RuntimeException("Error creating swerve drive", e)
@@ -62,7 +73,9 @@ object SwerveSubsystem : SubsystemBase() {
 
         tab.addDouble("Heading") { getHeading().degrees }
 
-
+        for(i in 0..3) {
+            moduleIOList[i] = ModuleIOYagsl(swerveDrive.modules[i])
+        }
 
     }
 
@@ -227,7 +240,10 @@ object SwerveSubsystem : SubsystemBase() {
 
     override fun periodic() {
         swerveStates.set(swerveDrive.states)
-        swerveDrive.updateInputs()
-        swerveDrive.processInputs()
+        for(i in 0..3) {
+            moduleIOList[i]?.updateInputs(inputsArray[i])
+            Logger.processInputs("swerve/Module[${i + 1}]", inputsArray[i])
+        }
+
     }
 }
